@@ -1,0 +1,159 @@
+---
+title: "HW3_Jie He"
+output: html_document
+---
+#Q3
+#a
+```{r}
+print("Y = 50 + 20*GPA + 0.07*IQ + 35*Gender + 0.01*GPA:IQ + (-10)*GPA:Gender")
+```
+i) and ii) are incorrect because the coefficient of GPA:Gender is negative. GPA does have an effect on Y. If GPA is high enough (above 3.5), male will make more money than female and thus iii) is correct and iv) is incorrect.
+Male: Y = 50 + 20*GPA + 0.07*IQ + 0.01*GPA:IQ
+Female: Y = 50 + 20*GPA + 0.07*IQ + 35 + 0.01*GPA:IQ + (-10)*GPA
+
+#b
+```{r}
+Y = 50 + 20*4.0 + 0.07*110 + 35 + 0.01*(4.0*110) + (-10)*4.0
+print(paste0("this specific female has a salary: ", Y, " thousand dollars"))
+```
+#c
+False! Compared with all the other predictors, IQ has the biggest scale. IQ(0-200); Gender(0 or 1); GPA(0-4)
+If all predictors have the same level of impact on response, the coefficients of IQ related terms should be relatively smaller.
+
+#Q9
+#e
+```{r, warning=FALSE, message=FALSE}
+#load data set
+library(ISLR)
+data(Auto)
+#test multiple combinations
+int_no <- lm(mpg~displacement+weight+year+origin, data=Auto) #no interactions
+int1 <- lm(mpg~displacement+weight+year*origin, data=Auto)
+int2 <- lm(mpg~displacement+origin+year*weight, data=Auto)
+int3 <- lm(mpg~displacement+year+weight*origin, data=Auto)
+int4 <- lm(mpg~year+origin+displacement*weight, data=Auto)
+
+#int5 <- lm(mpg~displacement+weight+year:origin, data=Auto)
+#int6 <- lm(mpg~displacement+origin+year:weight, data=Auto)
+#int7 <- lm(mpg~displacement+year+weight:origin, data=Auto)
+#int8 <- lm(mpg~year+origin+displacement:weight, data=Auto)
+
+summary(int_no) #no interactions
+summary(int1)
+summary(int2)
+summary(int3)
+summary(int4)
+
+#summary(int5)
+#summary(int6)
+#summary(int7)
+#summary(int8)
+```
+Based on the results(p-values of interactions < 0.05), all of the interactions seem to be statistically significant.
+
+#f
+```{r}
+#test log(X), X^0.5, and X^2 transformations
+lm1 <- lm(mpg~displacement+I(sqrt(weight))+year+origin, data=Auto)
+lm2 <- lm(mpg~displacement+I(log(weight))+year+origin, data=Auto)
+lm3 <- lm(mpg~displacement+I(weight^2)+year+origin, data=Auto)
+
+summary(lm1)
+summary(lm2)
+summary(lm3)
+```
+From the results, we can see that all these models are good because they all have high F-statistic values and low p-values associated with. I(sqrt(weight)), I(log(weight)), and I(weight^2) are all statistically significant since they all have p-values less than 0.05.
+
+#Q10
+#a
+```{r, warning=FALSE, message=FALSE}
+#load data set
+library(ISLR)
+data(Carseats)
+summary(Carseats)
+#fit regression model
+fit.lm <- lm(Sales~Price+Urban+US, data=Carseats)
+summary(fit.lm)
+```
+
+#b
+From https://cran.r-project.org/web/packages/ISLR/ISLR.pdf, we can get the info of the data set.
+Sales is about unit sales in thousands at each location.
+Price is about price charged for car seats at each site.
+Urban is about whether the store is in a rural or urban location. (two levels Yes or No)
+US is about whether the store is in US or not. (two levels Yes or No)
+
+Coefs:
+Price(-0.054459): When price increases by $1, sales decrease by 54.459(rounded to 54 for unit). It is statistically significant. 
+UrbanYes(-0.021916): If the store is in an urban location, sales are 21.916(rounded to 22 for unit) lower. It is not statistically significat.
+USYes(1.200573): If the store is in US, sales are 1200.573(rounded to 1201 for unit) higher. It is statistically significant.
+
+#c
+Sales = 13.043469 + (-0.054459)*Price + (-0.021916)*UrbanYes + 1.200573*USYes
+
+#d
+We can reject the null hypothesis for Price and USYes because the p-values of their coefficients are small.
+
+#e
+```{r}
+#fit the data with a two-predictor model
+fit.lm_1 <- lm(Sales ~ Price + US, data=Carseats)
+summary(fit.lm_1)
+```
+
+#f
+From the results, we can see that Residual standard error is 2.472 and Multiple R-squared is 0.2393 for model with three predictors; Residual standard error is 2.469 and Multiple R-squared is 0.2393 for model with two predictors. Obviously, the one with two predictors has a relatively small RSE.
+
+#g
+```{r}
+confint(fit.lm_1)
+confint(fit.lm_1, level=0.95)
+```
+
+#h
+```{r, warning=FALSE, message=FALSE}
+par(mfrow=c(2,2))
+plot(fit.lm_1)
+#use car library to do plots
+library(car)
+qqPlot(fit.lm_1, main="QQ Plot")
+leveragePlots(fit.lm_1)
+plot(hatvalues(fit.lm_1))
+```
+The Residuals VS Fitted graph doesn't show us strong outliers. QQ plot shows no evidence of outliers. Leverage plots show us there might be some leverages.  
+
+#Q14
+#a
+```{r}
+set.seed(1)
+x1=runif(100)
+x2=0.5*x1+rnorm(100)/10
+y=2+2*x1+0.3*x2+rnorm(100)
+```
+$y = \beta_{0} + \beta_{1}*x_1 + \beta_{2}*x_2 + \epsilon$ 
+$\beta_{0}=2$ 
+$\beta_{1}=2$ 
+$\beta_{2}=0.3$
+
+#b
+```{r}
+cor(x1,x2)
+plot(x1,x2)
+```
+
+#c
+```{r}
+fit.lm <- lm(y~x1+x2)
+summary(fit.lm)
+```
+We can see from above that $\hat{\beta_{0}}=2.1305$, $\hat{\beta_{1}}=1.4396$, and $\hat{\beta_{2}}=1.0097$. According to the p-values obtained, coefficient of x1 is statistically significant and coefficient of x2 is not statistically significant. Compared with the true $\beta_{0}$, $\beta_{1}$, and $\beta_{2}$, 
+$\hat{\beta_{0}}$ is close to the true value 
+$\hat{\beta_{1}}$ is 1.4396 which is not close to the true value and it has a high SE. 
+$\hat{\beta_{2}}$ is 1.0097 which is not close to the true value and it has a even higher SE than $\hat{\beta_{1}}$.
+We can thus reject $H_0 : \beta_1=0$ but can't reject $H_0 : \beta_2=0$ based on p-values. 
+
+
+
+
+
+

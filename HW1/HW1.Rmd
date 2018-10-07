@@ -1,0 +1,155 @@
+---
+title: "HW1_Jie He"
+output:
+  html_document: default
+  pdf_document:
+    fig_caption: yes
+---
+
+#Q4
+#a
+1) We want to predict win or loss in a Georgetown's NCAA basketball game. Response is that Hoyas win or lose. Predictors are Hoyas' strength and weakness, our opponent's strength and weakness, player fatigue, player mental conditions, and player injuries. Goal is prediction to predict Georgetown's win or loss because we want accurately predicting the response for future observations.
+
+2) We want to predict type of flower which can be Iris setosa, Iris virginica, and Iris versicolor. Response is flower type. Predictors are the length and the width of the sepals and petals. Goal is prediction to predict which specie of Iris the flower is because we want accurately predicting the response for future observations. 
+
+3) We want to predict whether or not a patient has a certain disease. Response is that a patient has or has not the disease. Predictors are the patient's height, weight, age, blood glucose, and past medical record. Goal is prediction because we want accurately predicting the response for future observations.
+
+#b
+1) We want to predict an international student's GRE score. Response is what score the student can achieve in a GRE exam. Predictors are the student's class standing, GPA, and GRE preparation time. Goal is prediction because we want accurately predicting the response for future observations.
+
+2) We want to predict a first year Georgetown graduate student's GPA. Response is what GPA the student can achieve in his/her first semester at Georgetown University. Predictors are the student's GRE scores, college GPA, and current enrollment status. Goal is prediction because we want accurately predicting the response for future observations.
+
+3) We want to predict the salary of a job posting. Response is how much the employer will pay you for a particular job posting. Predictions are job title, job location, and company size. Goal is prediction because we want accurately predicting the response for future observations.
+
+#c
+1) We want to analyze people's online shopping behaviors and devide shoppers into different types. It is useful for targeted advertising. 
+
+2) We want to analyze people's museum visiting behaviors based on the results from a survey and devide visitors into different groups. It is useful for the museum's marketing department to create targeted campaigns. 
+
+3) We want to analyze Iris flower types based on the length and the width of the sepals and petals. It is useful for distinguishing the species from each other.
+
+#Q7
+#a
+```{r}
+dis_1 <- sqrt(0^2 + 3^2 + 0^2)
+print(dis_1)
+dis_2 <- sqrt(2^2 + 0^2 + 0^2)
+print(dis_2)
+dis_3 <- sqrt(0^2 + 1^2 + 3^2)
+print(dis_3)
+dis_4 <- sqrt(0^2 + 1^2 + 2^2)
+print(dis_4)
+dis_5 <- sqrt((-1)^2 + 0^2 + 1^2)
+print(dis_5)
+dis_6 <- sqrt(1^2 + 1^2 + 1^2)
+print(dis_6)
+```
+#b
+When K=1, the prediction is Green since the 1-nearest neighbor is Obs5.
+
+#c
+When K=3, the prediction is Red. The 3-nearest neighbors are Obs5, Obs6, and Obs2. The probability that Red occurs is 2/3 and the one that Green occurs is 1/3. So we predict Red. 
+
+#d
+If the Bayes decision boundary is highly non-linear, we would expect the best value for K to be small. When K is increasing, the boundary trends to be more  linear and thus we need smaller K to get more of the none-linear bountary.
+
+#Q9
+#a
+```{r}
+library(ISLR)
+data(Auto)
+summary(Auto)
+```
+Quantitative predictors: mpg, cylinders(can be qualitative as well), displacement, horsepower, weight, acceleration, and year.
+
+Qualitative predictors: origin and name.
+
+#b
+```{r}
+range(Auto$mpg)
+range(Auto$cylinders)
+range(Auto$displacement)
+range(Auto$horsepower)
+range(Auto$weight)
+range(Auto$acceleration)
+range(Auto$year)
+```
+
+#c
+```{r}
+mean(Auto$mpg)
+mean(Auto$cylinders)
+mean(Auto$displacement)
+mean(Auto$horsepower)
+mean(Auto$weight)
+mean(Auto$acceleration)
+mean(Auto$year)
+cat("\n")
+sd(Auto$mpg)
+sd(Auto$cylinders)
+sd(Auto$displacement)
+sd(Auto$horsepower)
+sd(Auto$weight)
+sd(Auto$acceleration)
+sd(Auto$year)
+```
+
+#d
+```{r}
+newdf <- Auto[-c(10:85), ]
+temp <- newdf[c(1:7)]
+sapply(temp, range)
+sapply(temp, mean)
+sapply(temp, sd)
+```
+
+#e
+```{r}
+plot(Auto$mpg, Auto$cylinders, main = "mpg VS cylinders", xlab = "mpg", ylab = "cylinders")
+
+pairs(Auto[,1:7]) #a matrix of scatterplots among all quantitative predictors
+```
+We can see from the graph generated above that horsepower is negatively correlated to weight; mpg is negatively correlated to cylinders, displacement, horsepower and weight. Finally, the auto vehicle with newer model year generally has higher mpg. 
+
+#f
+Yes, they do. From the plots of the previous problem, we can see that there exist relations between mpg and other variables. More precisely, "mpg is negatively correlated to cylinders, displacement, horsepower and weight. Finally, the auto vehicle with newer model year generally has higher mpg."
+
+#Shiny
+#a
+```{r}
+mean(c(85.44, 100.26, 75.62, 111.64, 112.36, 84.7, 149.6, 102.65, 71.97, 54.49))
+range(-3.75, -3.99, -3.82, -4.35, -4.12, -4.88, -4.20, -4.78, -4.07, -4.11)
+-3.75-(-4.88)
+```
+
+#b
+```{r}
+mean(c(23.65, 42.25, 87.65, 77.79, 43.38, 57.19, 50.36, 56.25, 34.71, 65.69))
+#coefficient1
+range(8.75, 4.00, 4.50, -7.80, -6.00, 7.30, 6.25, 0.50, 8.80, 1.75)
+#coefficient2
+range(-6.55, -4.30, -5.00, 7.00, 6.40, -5.10, -4.70, -0.41, -7.7, -0.20)
+8.8+7.8
+```
+During 10 simulations, coefficient3 is eliminated first. From the above calculations, we can see that coefficient1 has larger range than coefficient2.
+
+#c
+```{r}
+mean(c(21.14, 4.34, 8.17, 19.7, 3.41, 2.36, 6.07, 0.28, 2.47, 13.75))
+#coefficient6
+range(9.5e+05, -4.5e+05, 7e+05, -3.5e+05, -4.1e+05, 2.55e+05, -3.8e+05, -8e+05, 2.9e+05, -1.1e+05)
+950000+800000
+```
+After multiple simulations, I get that coefficient6 has the largest range in this case.
+
+#d
+From the results generated above, we can certainly see that the value of the average Residual SSE over 10 different simulations is decreasing and the range of the coefficient with the largest range is getting bigger when the model complexity is getting larger. The average Residual SSE reflects the bias and the largest range reflects the variance. When the model complexity is small, the bias is high and the variance is low.When the model complexity is big, the bias is low and the variance is high. Model with low complexity has high bias which can potentially cause underfitting. Model with high complexity has high variance which can potentially cause overfitting. It is clearly the bias-variance tradeoff. It is difficult to minimize both sources of error at the same time. 
+
+#e
+For model complexity equal to 2, I typically obtain a curve which is most similar and overall close to the unknown curve that is to be estimated. During multiple runs with complexity equal to 2, the resulted curves are always similar and close to the black curve unlike other complexities. The black curve seems like a part of a quadratic curve and thus the 2nd-Order polynomial function should be the best fit. 
+
+
+
+
+
+

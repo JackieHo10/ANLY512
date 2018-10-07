@@ -1,0 +1,169 @@
+---
+title: "HW4_Jie He"
+output: html_document
+---
+#Q6
+#a
+```{r}
+Y = -6 + 0.05*40 + 1*3.5
+PX = exp(Y)/(1+exp(Y))
+PX
+exp(-6+0.05*40+1*3.5)/(1+exp(-6+0.05*40+1*3.5))
+```
+The probability is 0.3775407.
+
+#b
+```{r}
+(log(1)+6-1*3.5)/0.05
+```
+50 hours are needed.
+
+#Q13(logistic only)
+```{r, warning=FALSE, message=FALSE}
+#load library and data
+library(MASS)
+data(Boston)
+summary(Boston)
+#create a class variable in a data frame
+crim1 <- ifelse(Boston$crim > median(Boston$crim), 1, 0)
+myDF1 <- data.frame(Boston, crim1)
+pairs(myDF1)
+sort(cor(myDF1)[1,])
+#train the model
+set.seed(1)
+#sampling without replacement for training data
+train_1 <- sample(1:nrow(myDF1), nrow(myDF1)*0.7, replace = F)
+train <- myDF1[train_1,]
+test <- myDF1[-train_1,]
+#splitting variables/using subsets of the predictors
+train.X1 <- cbind(train$age, train$dis, train$lstat, train$medv)
+test.X1 <- cbind(test$age, test$dis, test$lstat, test$medv)
+train.X2 <- cbind(train$tax, train$rad)
+test.X2 <- cbind(test$tax, test$rad)
+#Do Logistic Regression
+fit.logit_1 <- glm(crim1~age+dis+lstat+medv, data=train, family=binomial)
+summary(fit.logit_1)
+logit_1.prob <- predict(fit.logit_1, test, type="response")
+logit_1.pred <- ifelse(logit_1.prob>0.5, 1, 0)
+#test error rate
+mean(logit_1.pred != test$crim1)
+#make a confusion matrix
+table(test$crim1, logit_1.prob>0.5)
+
+fit.logit_2 <- glm(crim1~tax+rad, data=train, family=binomial)
+summary(fit.logit_2)
+logit_2.prob <- predict(fit.logit_2, test, type="response")
+logit_2.pred <- ifelse(logit_2.prob>0.5, 1, 0)
+#test error rate
+mean(logit_2.pred != test$crim1)  
+#make a confusion matrix
+table(test$crim1, logit_2.prob>0.5)
+```
+For the first model, I used age, dis, lstat, and medv to predict crim1. It seems that age and dis are both significant because of their p-values but lstat and medv are not. The test error rate is 0.1644737. Based on the confusion matrix, the rate of misclassification is $$25/152=0.1644737$$ and the accuracy rate is $$127/152=0.8355263$$
+For the second model, I used tax and rad to predict crim1. It seems that both predictors are significant because of their p-values. The test error rate is 0.2434211. Based on the confusion matrix, the rate of misclassification is $$37/152=0.2434211$$ and the accuracy rate is $$115/152=0.7565789$$ 
+
+#Image Classification
+```{r}
+#load the data set into a data frame
+load("mnist_all.RData")
+mydf <- data.frame(train)
+
+#define a plot function for the training data
+plot_digit <- function(j){
+  arr784 <- as.numeric(train$x[j,])
+  col=gray(12:1/12)
+  image(matrix(arr784, nrow=28)[,28:1], col=col,
+        main = paste("this is a ",train$y[j]))
+}
+
+#remove rows other than 0 and 1
+myData <- mydf[mydf$y <= 1,]
+```
+
+#P1
+```{r}
+#features are pixel values
+#myfeatures_col = sample(784,1)
+myfeatures_col = 276
+myDataFrame <- myData[,c(myfeatures_col,786)]
+myDataFrame$labels = as.numeric(myData$y==0)
+
+#logistic regression
+fit.lm_1 <- glm(labels ~ myDataFrame[,1], data = myDataFrame, family = binomial)
+summary(fit.lm_1)
+fit.lm_1.predict <- predict(fit.lm_1, type = "response")
+table(myDataFrame$labels, fit.lm_1.predict>0.5) #threshold 0.5
+```
+The logistic regression equation is labels = -0.886117 + 0.053565*myDataFrame[, 1].
+The fraction of true positives is $$6696/(6696+2681)=0.714088$$
+The fraction of false positives is $$46/(46+3242)=0.01399$$ which is not 0.1.
+myDataFrame[, 1]: x.275
+
+#P2
+```{r}
+#pick up two variables with small correlation
+#myfeatures_col_1 = sort(sample(784,2))
+myfeatures_col_1 = c(322,580)
+cor(myData[,myfeatures_col_1[1]],myData[,myfeatures_col_1[2]])
+myDF <- myData[,c(myfeatures_col_1,786)]
+myDF$labels = as.numeric(myData$y==0)
+
+#logistic regression
+fit.lm_2 <- glm(labels ~ myDF[,1] + myDF[,2], data = myDF, family = binomial)
+summary(fit.lm_2)
+fit.lm_2.predict <- predict(fit.lm_2, type = "response")
+table(myDF$labels, fit.lm_2.predict>0.5) 
+
+#calculate AUC
+library(pROC)
+roc <- roc(myDF$labels,fit.lm_2.predict)
+auc(roc)
+
+#make a scatter plot
+plot(myDF[,1], myDF[,2], col=ifelse(myDF$labels==0, "blue", "red"), main="a scatter plot of two variables", xlab = "first variable", ylab = "second variable") 
+legend(0, 350, pch=c(1,1), col=c("blue", "red"), c("0", "1"), cex=0.8)
+```
+The correlation between two variables is 0.15623. AUC is 0.9386 which indicates that the model is good. The scatter plot also suggests that the classifier is good. The classifier separates the group into two categories well.  
+myfeatures_col_1: 322, 580
+
+#P3
+```{r}
+#find 10 variables with the largest variances
+sort(apply(myData,2,var))
+myFrame <- myData[,c(408,436,380,464,463,353,352,381,491,435,786)]
+myFrame$labels = as.numeric(myData$y==0)
+
+#logistic regression
+fit.lm_3 <- glm(labels ~ myFrame[,1] + myFrame[,2] + myFrame[,3] + myFrame[,4] + myFrame[,5] + myFrame[,6] + myFrame[,7] + myFrame[,8] + myFrame[,9] + myFrame[,10], data = myFrame, family = binomial)
+summary(fit.lm_3)
+fit.lm_3.predict <- predict(fit.lm_3, type = "response")
+table(myFrame$labels, fit.lm_3.predict>0.5)
+
+#create a ROC curve
+library(pROC)
+roc_1 <- roc(myFrame$labels,fit.lm_3.predict)
+auc(roc_1)
+plot(roc_1)
+```
+I built a classifier using the 10 variables with the largest variances. AUC is 0.9977 which indicates that the model is nearly perfect.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

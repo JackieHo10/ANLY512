@@ -1,0 +1,122 @@
+---
+title: 'Analytics 512: Take Home Final Exam'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+200 points in __nine__ problems. This is the take-home portion of the exam. You may use your notes, your books, all material on the course website, and your computer or any computer in the departmental computer lab. You may also use official documentation for `R`, built-in or on https://cran.r-project.org/, but no other material on the Internet. Provide proper attribution for all such sources. You may not use any human help, except whatever help is provided by me. 
+
+Your solution should consist of two files: An .Rmd file that loads all data and all packages, makes all plots, and contains all comments and explanation, and an .html or .pdf file that is produced by the .Rmd file. Return your solutions in Canvas by Thursday, 5/10/18, 11:59PM 
+
+
+
+
+Problems A.1-A.6 use the __Ozone__ data that are available in the `mlbench` package. 
+Problems B.1-B.3 use the `make.eight` function; see the code below.
+
+
+# Part A: Ozone Data
+
+__Preparation:__ Load the __Ozone__ data. Read the instructions. Delete the variables V2 and V3 (day of month and day of week). Change the names of the remaining variables to
+
+`r c("month", "dailymax", "pressure", "windlax","humlax","tsand","telmonte","invlax","pressgrad","invbasetemplax","vislax" )
+`. 
+
+The target (response) variable is __dailymax__, the daily ozone maximum.
+
+### A.1 [10] 
+
+Make two more data set, one where all days with any missing observations are omitted and one where only those days with missing daily maximum are omitted. Are the days with missing data uniformly distributed over all twelve months? Explore this question with a chi-squared test. Explain your approach and summarize the conclusion.   
+
+
+### A.2 [30] 
+
+Fit trees to predict __dailymax__ from all variables except __month__, once from data with complete observations and once from data with complete daily maximum observations, but possibly missing data elsewhere. Find a short and convincing way to show that the two trees are the same.  
+
+
+### A.3 [20] 
+
+The daily ozone maximum can be predicted from the month alone, using the mean. Find a way to assess the rms error of this prediction using 10-fold cross validation.
+
+
+### A.4 [30] 
+
+Predict the daily ozone maximum from all variables except month, using a linear model and only observations with complete measurements. Identify all significant variables.
+
+Assess the rms error using 10 fold CV.
+
+
+### A.5 [20] 
+
+Use the LASSO for the linear model from the previous problem, once with standardization and once without. For each case, plot the coefficient trajectories as a function of the regularization parameter $\lambda$  and determine the last five variables that leave the model as $\lambda$ increases.
+
+
+### A.6 [10]
+
+In problems 2, 4, 5 you have identified several sets of variables that are probably useful for predicting __dailymax__ (excluding month). Compare these sets. Which variables are in all or most models? Which variables appear only in a few models?   
+
+
+# Part B: Artificial Data
+
+__Preparation:__ Use the following function code. Familiarize yourself with its output. 
+
+Use the function to make two datasets with 2000 observations each, one for training, one for testing. Set the random seed to 2019 before doing this. 
+
+```{r}
+make.eight = function(N, spread = .1, makeplot = T){
+  # Make N points:  N/2 points in horizontal figure 8
+  # N/4 points each inside the holes of the figure 8
+  # spread = noise parameter
+  # return data frame with coordinates x, y for each point 
+  # Classification variables in the data frame:
+  #    charlabel =   eight   or   left   or  right
+  #    label = 0 (for points on the figure 8) or = 1 (for points inside the holes)
+  # plot with marked points if makeplot = T
+  
+  # Try these examples:
+  # mydf <- make.eight(200)
+  # mydf <- make.eight(100,spread = .05)
+  # mydf <- make.eight(300,spread = .1, makeplot = F)
+  
+  circ0 = runif(N/2)*2*pi
+  circ = matrix(c(cos(circ0)/(1 + sin(circ0)^2),rep(-.5,N/4),rep(.5,N/4),
+        cos(circ0)*sin(circ0)/(1 + sin(circ0)^2),rep(0,N/2)),ncol = 2)
+  x = circ + spread*matrix(rnorm(2*N),N,2)
+  y=rep(c(0,1),c(N/2,N/2))
+  if(makeplot){plot(x,col = c(rep(1,N/2),rep(2,N/4),rep(3,N/4)),pch=19, 
+        xlab = "x1", ylab = "x2")}
+  A = data.frame(x = x[,1], y = x[,2], label = as.factor(y), 
+        charlabel = c(rep("eight",N/2),rep("left",N/4), rep("right",N/4)))
+  return(A)
+}
+```
+
+### B.1 [30] 
+
+(a) Build a tree from the training set to predict the label from  x and y. Do not use the variable __charlabel__. Plot the tree, evaluate it on the training set and on the test set, and make confusion matrices.
+
+
+(b) This tree can obviously be pruned. Explain how one can tell and explain how many terminal nodes should be used for the pruned tree. Verify that the pruned tree gives the same predictions for the training and test data. Do not use CV to decide on the tree size.
+
+
+(c) Explain why pruning any tree for data such as these to fewer than six nodes will most likely result in substantially worse performance. Demonstrate this with an example. 
+
+### B.2 [30] 
+
+(a) Fit a boosted tree model, with interaction depth < 3 (all other parameters are your choice). Do not use the variable __charlabel__. Demonstrate that the model is incapable of fitting the training data very well (i.e. with prediction error < 1%). Explain this phenomenon. Demonstrate that such a model may nevertheless overfit. _You should make the label veriable numeric first._
+
+(b) Fit a boosted tree model with sufficiently large interaction depth. Do not use the variable __charlabel__. Demonstrate that the training data now can be fitted almost perfectly. Decide whether the model from part (a) or the model from part (b) should be used for new data.
+
+
+### B.3 [20]
+
+Make $N = 1000$ figure eight data points with spread = 0.05 and delete the variable __label__. You may want to keep  __charlabel__. Set the random seed to 2019 before doing this.
+
+You'll apply clustering methods to this dataset. From looking at this data, one would expect (hope) that all the data in a point cloud inside one of the holes of the 8 will be in the same cluster. Find a way to determine if this is indeed the case. There are many ways to do this, including these possibilities: Make a scatterplot of the datapoints colored by cluster label, or plot the cluster labels against the row index, or make a two-way table of __charlabel__ and "membership" in each cluster, and so on. Choose an approach and explain why you expect it to work. 
+
+
+(a) Apply hierarchical clustering, with both single linkage and complete linkage. Cut the resulting trees at $k = 10$ and $k = 20$. In each case, evaluate the clustering results with the approach that you have selected to determine whether the two interior point clouds are captured by the clustering algorithm. When applicable, write down which cluster indices correspond to the left and right point clouds.
+
+
+(b) If single linkage clustering is applied, then one expects that cutting the tree to three clusters will identify the three clusters (figure eight, left cloud, right cloud) perfectly. But this will likely only happen if the data isn't too noisy. We can control the data noise with the spread parameter of the `make.eight()` function. Determine for which spread value this happens, with evidence as in part (a). Set the random seed to 2019 before each run.

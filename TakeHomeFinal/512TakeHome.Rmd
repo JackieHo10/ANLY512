@@ -1,0 +1,379 @@
+---
+title: "FinalTakeHome_Jie He"
+output: html_document
+---
+Part A: Ozone Data
+```{r,warning=FALSE,message=FALSE}
+# data preparation
+library(mlbench)
+library(plyr)
+data(Ozone)
+#summary(Ozone)
+mydf <- data.frame(Ozone)
+mydf1 <- mydf[,-c(2,3)]
+mydf2 <- rename(mydf1, c("V1"="month", "V4"="dailymax", "V5"="pressure", "V6"="windlax", "V7"="humlax", "V8"="tsand", "V9"="telmonte", "V10"="invlax", "V11"="pressgrad", "V12"="invbasetemplax", "V13"="vislax"))
+```
+#A.1
+```{r}
+# make new data sets
+mydf3 <- mydf2[complete.cases(mydf2),]
+mydf4 <- mydf2[complete.cases(mydf2[,2]),]
+mydf5 <- mydf2[!complete.cases(mydf2),]
+# chi-squared test
+library(spgs)
+chisq.unif.test(as.numeric(mydf5$month), bins=12, interval=c(1,12))
+month12 <- c(14,12,10,9,21,13,18,16,14,13,13,10)
+chisq.test(month12)
+```
+I used chi-squared test on month. The Null Hypothesis is that the data is uniformly distributed over all twelve months and the Alternate Hypothesis is that the data is not uniformly distributed over all twelve months. From the results above, X-squared = 9.638, df = 11, p-value = 0.5632. We can thus accept the null hypothesis.
+
+#A.2
+```{r,warning=FALSE,message=FALSE}
+library(tree)
+# create trees and plots
+tree1 <- tree(dailymax ~ . - month, data = mydf3)
+summary(tree1)
+plot(tree1)
+text(tree1, pretty = 0)
+
+tree2 <- tree(dailymax ~ . - month, data = mydf4)
+summary(tree2)
+plot(tree2)
+text(tree2, pretty = 0)
+```
+From the results above, we can see that the two trees are the same.
+
+#A.3
+```{r,warning=FALSE,message=FALSE}
+# compute the mean of dailymax in a certain month
+for(i in 1:12){
+  mon <- mydf4[as.numeric(mydf4$month) == i,]
+  cat("Month", i, " ")
+  print(mean(mon$dailymax))
+}
+# create an aggregated dataframe
+aggmons <- aggregate(mydf4$dailymax, list(mydf4$month), mean)
+colnames(aggmons)[1] <- "month"
+colnames(aggmons)[2] <- "dailymax_mean"
+mydf6 <- merge(aggmons, mydf4, "month")
+# create a linear model
+fitlinear <- glm(dailymax ~ month, data = mydf4) # this linear model is implicitly calculating the mean per each month
+summary(fitlinear)
+# use 10-fold CV
+library(boot)
+set.seed(1)
+cverror <- cv.glm(mydf4, fitlinear, K=10)
+cverror$delta[1]
+rmserr <- sqrt(cverror$delta[1])
+rmserr
+```
+
+#A.4
+```{r}
+# fit a linear model
+fit.lm <- glm(dailymax ~ . - month, data = mydf3)
+summary(fit.lm)
+# perform CV
+library(boot)
+set.seed(1)
+cv.error <- cv.glm(mydf3, fit.lm, K=10)
+cv.error$delta[1]
+rms_err <- sqrt(cv.error$delta[1])
+rms_err
+```
+From the summary table above, we can see that "humlax", "tsand", "telmonte", and "invlax" are significant variables based on their p-values. Notice that the MSE is 20.7315, and thus the RMSE is 4.553186.
+
+#A.5
+```{r,warning=FALSE,message=FALSE}
+# use the LASSO for the linear model
+# with standardization
+library(glmnet)
+library(plotmo)
+x <- model.matrix(dailymax ~ . - month, data = mydf3)[,-1]
+y <- mydf3$dailymax 
+lassofit <- glmnet(x, y, alpha = 1, standardize = TRUE)
+plot(lassofit, xvar = "lambda", label = TRUE)
+plot_glmnet(lassofit)
+# without standardization
+lassofit_1 <- glmnet(x, y, alpha = 1, standardize = FALSE)
+plot(lassofit_1, xvar = "lambda", label = TRUE)
+plot_glmnet(lassofit_1)
+# select the best lambda
+set.seed(1)
+cv.out <- cv.glmnet(x, y, alpha = 1)
+plot(cv.out)
+bestlambda <- cv.out$lambda.min
+print(bestlambda)
+```
+From the graphs above, we can see that for the LASSO with standardization, the last five variables that leave the model as lambda increases are tsand, telmonte, humlax, invlax, and vislax; for the LASSO without standardization, the last five variables that leave the model as lambda increases are vislax, pressgrd, pressure, invlax, and humlax.
+
+#A.6
+From the results of A.2, we can see that variables actually used in tree construction are telmonte, tsand, invlax, pressgrad, invbasetemplax, and vislax. From the results of A.4, we can see that humlax, tsand, telmonte, and invlax are statistically significant based on their p-values. The results of A.5 are just showed above. We notice the following: telmonte, tsand, and invlax appear 3 times; pressgrad, vislax, and humlax appear 2 times; invbasetemplax and pressure appear only once.
+
+Part B: Artificial Data
+```{r}
+make.eight = function(N, spread = .1, makeplot = T){
+  # Make N points:  N/2 points in horizontal figure 8
+  # N/4 points each inside the holes of the figure 8
+  # spread = noise parameter
+  # return data frame with coordinates x, y for each point 
+  # Classification variables in the data frame:
+  #    charlabel =   eight   or   left   or  right
+  #    label = 0 (for points on the figure 8) or = 1 (for points inside the holes)
+  # plot with marked points if makeplot = T
+  circ0 = runif(N/2)*2*pi
+  circ = matrix(c(cos(circ0)/(1 + sin(circ0)^2),rep(-.5,N/4),rep(.5,N/4),
+        cos(circ0)*sin(circ0)/(1 + sin(circ0)^2),rep(0,N/2)),ncol = 2)
+  x = circ + spread*matrix(rnorm(2*N),N,2)
+  y=rep(c(0,1),c(N/2,N/2))
+  if(makeplot){plot(x,col = c(rep(1,N/2),rep(2,N/4),rep(3,N/4)),pch=19, 
+        xlab = "x1", ylab = "x2")}
+  A = data.frame(x = x[,1], y = x[,2], label = as.factor(y), 
+        charlabel = c(rep("eight",N/2),rep("left",N/4), rep("right",N/4)))
+  return(A)
+}
+
+# use the function above to create training and testing data sets
+set.seed(2019)
+train <- make.eight(2000, spread = .1, makeplot = T)
+test <- make.eight(2000, spread = .1, makeplot = T) 
+```
+
+#B.1
+#a
+```{r,warning=FALSE,message=FALSE}
+# build a classification tree model on the training set
+library(tree)
+treefit <- tree(label ~ x + y, data = train)
+summary(treefit)
+plot(treefit)
+text(treefit, pretty = 0)
+# training and test errors
+treepred <- predict(treefit, train, type = "class")
+table(treepred, train$label)
+treepred_1 <- predict(treefit, test, type = "class")
+table(treepred_1, test$label)
+```
+From the confusion matrices above, we can see that the training error is 0.062 and the test error is 0.08.
+
+#b
+```{r,warning=FALSE,message=FALSE}
+# build a pruned tree
+# find the best tree size
+# cv method 
+#cv.obj <- cv.tree(treefit, FUN = prune.misclass)
+#cv.obj
+#plot(cv.obj$size, cv.obj$dev, type = 'b')
+# the validation set approach
+library(caret)
+for(i in 2:10){
+  prune.search <- prune.misclass(treefit, best = i)
+  prune.search.pred <- predict(prune.search, test, type = "class")
+  print(confusionMatrix(prune.search.pred, test$label))
+}
+# the best pruned tree
+prune.obj <- prune.misclass(treefit, best = 7)
+plot(prune.obj)
+text(prune.obj, pretty = 0)
+# training and test errors for both pruned and unpruned trees
+summary(prune.obj)
+prunepred_1 <- predict(prune.obj, train, type = "class")
+table(prunepred_1, train$label)
+prunepred <- predict(prune.obj, test, type = "class")
+table(prunepred, test$label)
+```
+We can use the validation set approach to obtain the test error rates for a bunch of pruned trees and simply choose the smallest number of terminal nodes with the lowest test error rate. From the confusion matrices generated from 7-node pruned tree above, we can see that they are the same as the ones in part a. That means the pruned tree gives the same predictions for the training and test data.
+
+#c
+```{r}
+# cv comparison
+cv.obj <- cv.tree(treefit, FUN = prune.misclass)
+cv.obj
+plot(cv.obj$size, cv.obj$dev, type = 'b')
+```
+Let's assume that we have 2000 obs and we want to build a decision tree to predict 0/1. First Split: var1 splits 2000 into 1400 1s, 600 0s; Second Split: var2 splits the above 1400 into 900 1s, 500 0s; Third Split: var3 splits the above 900 into 700 1s, 200 0s, and so on. we might obtain all 1s or all 0s at the seventh split. If the number of terminal nodes used for the pruned tree is too small (less than six in our problem), the pruned tree will be too simple and stop growing after the first few splits. It cannot catch all 1s or 0s at the end and thus it yields poor predictive performance. Both CV and the validation set approach (from part b) results show us that pruning a tree for data such as these in this problem to fewer than six nodes will most likely result in substantially worse performance. 
+
+#B.2
+#a
+```{r,warning=FALSE,message=FALSE}
+# fit a boosted tree model with interaction depth < 3
+library(gbm)
+set.seed(2019)
+# data type transformation
+train_1 <- transform(train, label = as.numeric(label))
+train_2 <- transform(train_1, label = label - 1)
+test_1 <- transform(test, label = as.numeric(label))
+test_2 <- transform(test_1, label = label - 1)
+# notice that the value of the shrinkage parameter is set to 0.02 and thus ntrees * shrinkage = 5000 * 0.02 = 100 < 200
+boostfit <- gbm(label ~ x + y, data = train_2, distribution = "bernoulli", n.trees = 5000, interaction.depth = 2, shrinkage = 0.02)
+summary(boostfit)
+# use the boosted model on both training and test sets
+boostpred <- predict(boostfit, newdata = train_2, n.trees = 5000, type = "response")
+boost.pred <- ifelse(boostpred > 0.5, 1, 0) # cutoff = 0.5
+table(boost.pred, train_2$label)
+boostpred_1 <- predict(boostfit, newdata = test_2, n.trees = 5000, type = "response")
+boost.pred_1 <- ifelse(boostpred_1 > 0.5, 1, 0) # cutoff = 0.5
+table(boost.pred_1, test_2$label)
+```
+From the confusion matrices above, we can see that the training error rate is 0.0245 and the test error rate is 0.072. It means that the model is unable to fit the training data very well. interaction.depth parameter refers to the number of splits which gbm has to perform on a tree (starting from a single node). It is equal to the number of the maximum nodes per tree. In this case, 2 is not good enough because the resulting tree with 2 nodes is not deep enough to capture every single element with correct label. Since the test error rate is high compared with the training error rate, it seems that the model still overfits the training data.
+
+#b
+```{r,warning=FALSE,message=FALSE}
+# fit a boosted tree model with sufficiently large interaction depth
+# notice that the value of the shrinkage parameter is set to 0.02 and thus ntrees * shrinkage = 5000 * 0.02 = 100 < 200
+set.seed(2019)
+boostfit_1 <- gbm(label ~ x + y, data = train_2, distribution = "bernoulli", n.trees = 5000, interaction.depth = 4, shrinkage = 0.02)
+summary(boostfit_1)
+# use the boosted model on both training and test sets
+boostpred_2 <- predict(boostfit_1, newdata = train_2, n.trees = 5000, type = "response")
+boost.pred_2 <- ifelse(boostpred_2 > 0.5, 1, 0) # cutoff = 0.5
+table(boost.pred_2, train_2$label)
+#boostpred_3 <- predict(boostfit_1, newdata = test_2, n.trees = 5000, type = "response")
+#boost.pred_3 <- ifelse(boostpred_3 > 0.5, 1, 0) # cutoff = 0.5
+#table(boost.pred_3, test_2$label)
+```
+From the confusion matrices above, we can see that the training error rate is 0.0015. It shows that the training data can be fitted almost perfectly now. In my mind, we should use the model from part (a) since the model from part (b) seems to be overfitting the training data more.
+
+#B.3
+```{r}
+# generate new data set and do data cleaning
+set.seed(2019)
+newdata <- make.eight(1000, spread = 0.05, makeplot = T)
+newdata$label <- NULL
+```
+In this problem, I choose "Make a scatterplot of the datapoints colored by cluster label". This is a simple but efficient way to evaluate the results. The plot generated by the make.eight() function suggests that it might be a useful way in this case and it actually works after I attacked the following questions.
+
+#a
+```{r,warning=FALSE,message=FALSE}
+# apply hierarchical clustering with both single linkage and complete linkage
+single <- hclust(dist(newdata), method = "single")
+plot(single, main = "Single Linkage", cex = 0.5)
+complete <- hclust(dist(newdata), method = "complete")
+plot(complete, main = "Complete Linkage", cex = 0.5)
+# cut the trees at k = 10 and k = 20
+group1 <- data.frame(cutree(single, k = 10))
+group2 <- data.frame(cutree(single, k = 20))
+group3 <- data.frame(cutree(complete, k = 10))
+group4 <- data.frame(cutree(complete, k = 20))
+colnames(group1) <- "cluster label"
+colnames(group2) <- "cluster label"
+colnames(group3) <- "cluster label"
+colnames(group4) <- "cluster label"
+group1$ID <- seq.int(nrow(group1))
+group2$ID <- seq.int(nrow(group2))
+group3$ID <- seq.int(nrow(group3))
+group4$ID <- seq.int(nrow(group4))
+# make some plots to show the cuts
+library(dendextend)
+dend <- as.dendrogram(single)
+dend <- color_branches(dend, k = 10, groupLabels = TRUE)
+dend <- color_labels(dend, k = 10)
+plot(dend, main = "single with k = 10")
+dend_1 <- as.dendrogram(single)
+dend_1 <- color_branches(dend_1, k = 20, groupLabels = TRUE)
+dend_1 <- color_labels(dend_1, k = 20)
+plot(dend_1, main = "single with k = 20")
+dend_2 <- as.dendrogram(complete)
+dend_2 <- color_branches(dend_2, k = 10, groupLabels = TRUE)
+dend_2 <- color_labels(dend_2, k = 10)
+plot(dend_2, main = "complete with k = 10")
+dend_3 <- as.dendrogram(complete)
+dend_3 <- color_branches(dend_3, k = 20, groupLabels = TRUE)
+dend_3 <- color_labels(dend_3, k = 20)
+plot(dend_3, main = "complete with k = 20")
+# evaluate the clustering results with the selected approach 
+plot(group1$ID, group1$`cluster label`, xlab = "ID", ylab = "cluster label", main = "Scatterplot data VS label", col = factor(group1$`cluster label`))
+plot(group2$ID, group2$`cluster label`, xlab = "ID", ylab = "cluster label", main = "Scatterplot data VS label", col = factor(group2$`cluster label`))
+plot(group3$ID, group3$`cluster label`, xlab = "ID", ylab = "cluster label", main = "Scatterplot data VS label", col = factor(group3$`cluster label`))
+plot(group4$ID, group4$`cluster label`, xlab = "ID", ylab = "cluster label", main = "Scatterplot data VS label", col = factor(group4$`cluster label`))
+```
+From the scatterplots showed above, we can see that the two interior point clouds are captured by the clustering algorithm. However, complete linkage performs much better than single linkage since there exist many misclassified data points in the first two graphs. In the third scatterplot, the left point cloud is labelled as 2 and the right point cloud is labelled as 5. In the fourth scatterplot, the left point cloud is labelled as 19 and the right point cloud is labelled as 20. 
+
+#b
+```{r,warning=FALSE,message=FALSE}
+# generate new data set and do data cleaning
+set.seed(2019)
+mydata <- make.eight(1000, spread = 0.04, makeplot = T)
+mydata$label <- NULL
+# apply hierarchical clustering with single linkage
+single_1 <- hclust(dist(mydata), method = "single")
+plot(single_1, main = "Single Linkage", cex = 0.5)
+# cut the tree at k = 3
+group5 <- data.frame(cutree(single_1, k = 3))
+colnames(group5) <- "cluster label"
+group5$ID <- seq.int(nrow(group5))
+# make a plot to show the cut
+library(dendextend)
+dend_4 <- as.dendrogram(single_1)
+dend_4 <- color_branches(dend_4, k = 3, groupLabels = TRUE)
+dend_4 <- color_labels(dend_4, k = 3)
+plot(dend_4, main = "single with k = 3")
+# evaluate the clustering result with the selected approach 
+plot(group5$ID, group5$`cluster label`, xlab = "ID", ylab = "cluster label", main = "Scatterplot data VS label", col = factor(group5$`cluster label`))
+```
+I tried many different values of spread. Based on the graphs generated above, we can see that spread = 0.04 is already good to separate all data points into three clusters well. If you pick a value less than 0.04 but not negative, it might also fulfill the requirement of this problem. But 0.04 seems already sufficient here.
+
+#THE END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

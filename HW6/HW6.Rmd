@@ -1,0 +1,183 @@
+---
+title: "HW6-Jie He"
+output: html_document
+---
+#5.4
+#Q8
+#a
+```{r}
+set.seed(1)
+y=rnorm(100)
+x=rnorm(100)
+y=x-2*x^2+rnorm(100)
+```
+In this data set, n = 2 and p = 100. The model is $Y=X-2X^2+\epsilon$ 
+
+#b
+```{r}
+plot(x,y)
+```
+From the graph above, we can see that the relationship between x and y is quadratic. Notice that $X^2$ term is in the model.
+
+#c
+```{r}
+library(boot)
+set.seed(1)
+mydf <- data.frame(y, x, x2=x^2, x3=x^3, x4=x^4)
+fit_1 <- glm(y ~ x, data = mydf)
+cv.err_1 <- cv.glm(mydf, fit_1)
+cv.err_1$delta
+fit_2 <- glm(y ~ x + x2, data = mydf)
+cv.err_2 <- cv.glm(mydf, fit_2)
+cv.err_2$delta
+fit_3 <- glm(y ~ x + x2 + x3, data = mydf)
+cv.err_3 <- cv.glm(mydf, fit_3)
+cv.err_3$delta
+fit_4 <- glm(y ~ x + x2 + x3 + x4, data = mydf)
+cv.err_4 <- cv.glm(mydf, fit_4)
+cv.err_4$delta
+```
+
+#d
+```{r}
+library(boot)
+set.seed(123)
+mydf <- data.frame(y, x, x2=x^2, x3=x^3, x4=x^4)
+fit_1 <- glm(y ~ x, data = mydf)
+cv.err_1 <- cv.glm(mydf, fit_1)
+cv.err_1$delta
+fit_2 <- glm(y ~ x + x2, data = mydf)
+cv.err_2 <- cv.glm(mydf, fit_2)
+cv.err_2$delta
+fit_3 <- glm(y ~ x + x2 + x3, data = mydf)
+cv.err_3 <- cv.glm(mydf, fit_3)
+cv.err_3$delta
+fit_4 <- glm(y ~ x + x2 + x3 + x4, data = mydf)
+cv.err_4 <- cv.glm(mydf, fit_4)
+cv.err_4$delta
+```
+Yes, my results are the same as what I got in (c). Because LOOCV predicts every single observation by using all of the remaining observations, there is no randomness.
+
+#e
+From the results, we can see that the quadratic model with $x$ and $x^2$ has the lowest LOOCV error. This is what I expected since we generated the true model by using a quadratic formula in part a.
+
+#f
+```{r}
+fit_5 <- lm(y ~ poly(x, degree = 4))
+summary(fit_5)
+```
+From the above, we can see that only $x$ and $x^2$ are statistically significant. LOOCV shows us the model with only $x$ and $x^2$ is the best model. So these results agree with the conclusions drawn based on the cv results.
+
+#6.8
+#Q1
+#a
+Best subset approach has the smallest training RSS since the models optimize (minimize) the training RSS and every single model which the other two approaches will try using will be covered by best subset.
+
+#b
+The answer might be any of them. With big p predictors in comparison with n observations in the data, best subset might overfit. Forward stepwise and backward stepwise selection might try the same number of models. However, they might not converge on the same model. It's difficult to judge which one is better though. 
+ 
+#c
+#i
+True
+#ii
+True
+#iii
+False
+#iv
+False
+#v
+False
+
+#Q2
+#a
+iii is correct because lasso enforces a budget constraint on least squares which means "less flexible". "less flexible" means increasing in bias and decreasing in variance.
+
+#b
+iii is correct because ridge enforces a budget constraint on least squares which means "less flexible". "less flexible" means increasing in bias and decreasing in variance.
+
+#Q9
+#a
+```{r,warning=FALSE,message=FALSE}
+library(ISLR)
+data(College)
+set.seed(1)
+train_test <- sample(1:nrow(College), nrow(College)/2) #50:50 split
+train <- College[train_test,]
+test <- College[-train_test,]
+```
+
+#b
+```{r}
+fit_lm <- lm(Apps~., data = train)
+lm_pred <- predict(fit_lm, test)
+lm_err <- mean((test$Apps - lm_pred)^2) #mse
+print(lm_err)
+```
+
+#c
+```{r,warning=FALSE,message=FALSE}
+library(glmnet)
+matr_train <- model.matrix(Apps~., data = train)[,-1]
+matr_test <- model.matrix(Apps~., data = test)[,-1]
+fit_ridge <- cv.glmnet(matr_train, train$Apps, alpha = 0)
+lambda <- fit_ridge$lambda.min
+ridge_pred <- predict(fit_ridge, s = lambda, newx = matr_test)
+ridge_err <- mean((test$Apps - ridge_pred)^2) #mse
+print(ridge_err)
+```
+
+#d
+```{r,warning=FALSE,message=FALSE}
+library(glmnet)
+fit_lasso <- cv.glmnet(matr_train, train$Apps, alpha = 1)
+lambda_1 <- fit_lasso$lambda.min
+lasso_pred <- predict(fit_lasso, s = lambda_1, newx = matr_test)
+lasso_err <- mean((test$Apps - lasso_pred)^2) #mse
+print(lasso_err)
+lasso_coef <- predict(fit_lasso, type = "coefficients", s = lambda_1)[1:ncol(College),]
+nonzero_lasso_coef <- lasso_coef[lasso_coef != 0]
+length(nonzero_lasso_coef)
+```
+
+#the end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

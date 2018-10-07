@@ -1,0 +1,181 @@
+---
+title: "HW7-Jie He"
+output: html_document
+---
+#Section 6.8
+#Q11(LASSO)
+#a
+```{r,warning=FALSE,message=FALSE}
+#library and data input
+library(glmnet)
+library(MASS)    
+data(Boston)
+summary(Boston)
+#data split
+set.seed(1)
+training <- sample(1:nrow(Boston), nrow(Boston)/2) #50:50 split
+train <- Boston[training,]
+test <- Boston[-training,]
+mat.train <- model.matrix(crim~., data = train)[,-1] #construct design matrices from training data
+mat.test <- model.matrix(crim~., data = test)[,-1] #construct design matrices from test data
+#lasso
+lassofit <- cv.glmnet(mat.train, train$crim, alpha = 1)
+lambda <- lassofit$lambda.min
+lassopred <- predict(lassofit, s = lambda, newx = mat.test)
+lassoerr <- mean((test$crim - lassopred)^2)  #mse
+print(lassoerr)
+predict(lassofit, s = lambda, type = "coefficients") #predict coeffs
+```
+From the above, we can see the test MSE is 38.37664 for lasso. All the model coefficients are presented as well. Some features are dropped.  
+
+#b
+```{r}
+print(lassoerr)
+```
+The test MSE of LASSO is 38.37664 which is good. Some predictors are ignored in order to reduce model complexity which is good.
+
+#c
+No, it doesn't. Because some of the features in the data set are just not useful to the model, they are thus eliminated.
+
+#Section 7.9
+#Q3
+```{r}
+x1 <- seq(-2,1,0.1) 
+x2 <- seq(1,2,0.1) 
+y1 <- 1+x1
+y2 <- 1+x2-2*(x2-1)^2
+plot(c(x1,x2),c(y1,y2)) #two parts of the model based on the intervals
+```
+When X<1, we have $Y=1+X$
+slope:1, x-intercept:-1, y-intercept:1 
+When X>=1, we have $Y=1+X-2(X-1)^2$
+slope:different at different points on the curve, x-intercept:$5/4+\sqrt{17}/4$, y-intercept:none
+
+#Q9
+#a
+```{r,warning=FALSE,message=FALSE}
+#library and data loading
+library(MASS)
+data(Boston)
+summary(Boston)
+#fit the cubic polynomial regression
+set.seed(1)
+poly3 <- lm(nox~poly(dis,3), data = Boston)
+summary(poly3)
+#set parameters
+disrange <- range(Boston$dis) #get x-axis range
+disgrid <- seq(disrange[1], disrange[2], 0.1) #set x-axis grid
+poly3pred <- predict(poly3, newdata = list(dis=disgrid), se=TRUE) #get corresponding y values and compute se
+sefit <- poly3pred$fit + cbind(2*poly3pred$se.fit, -2*poly3pred$se.fit) #get se boundary
+#plotting
+plot(Boston$dis, Boston$nox, main = "Poly3 Fit", xlab = "dis", ylab = "nox", xlim=disrange, cex=1, col="red") #original 
+lines(disgrid, poly3pred$fit, lwd=3, col="yellow") #polynomial fit line
+matlines(disgrid, sefit, lwd=2, col="green", lty=1) #standard error boundary
+```
+
+#b
+```{r,warning=FALSE,message=FALSE}
+rss_err <- rep(0,10) #initialize
+#for loop for 10 different degrees
+for (i in 1:10) {
+  fitlm <- lm(nox~poly(dis,i), data = Boston)
+  rss_err[i] <- sum(fitlm$residuals^2)
+  #set parameters
+  disrange_0 <- range(Boston$dis) 
+  disgrid_0 <- seq(disrange_0[1], disrange_0[2], 0.1) 
+  polyipred <- predict(fitlm, newdata = list(dis=disgrid_0), se=TRUE) 
+  sefit_0 <- polyipred$fit + cbind(2*polyipred$se.fit, -2*polyipred$se.fit) 
+  #plotting
+  plot(Boston$dis, Boston$nox, main = substitute(paste('Poly ', i, ' Fit')), xlab = "dis", ylab = "nox", xlim=disrange_0, cex=1, col="red")  
+  lines(disgrid_0, polyipred$fit, lwd=3, col="yellow") 
+  matlines(disgrid_0, sefit_0, lwd=2, col="green", lty=1) 
+}
+print(rss_err)
+plot(rss_err, main = "RSS ERROR", type = "b")  
+```
+
+#c
+```{r,warning=FALSE,message=FALSE}
+#import library to perform CV
+library(boot)
+set.seed(1)
+cv_err <- rep(0,10) #initialize
+#for loop for 10 different degrees
+for (i in 1:10) {
+  fitglm <- glm(nox~poly(dis,i), data = Boston)
+  cv_err[i] <- cv.glm(Boston, fitglm, K=10)$delta[1]  #delta contains two numbers and we choose the standard one
+} #10-fold CV
+print(cv_err)
+plot(cv_err, main = "CV ERROR", type = "b") 
+```
+From the above, we can see that the optimal degree for the polynomial is 4 since it yields the smallest cv error.
+
+#Q10
+#a
+```{r,warning=FALSE,message=FALSE}
+#import library and load data set
+library(leaps) #for forward selection
+library(ISLR) #for the data
+attach(College)
+summary(College)
+set.seed(1)
+#split data into training and test
+trained <- sample(1:nrow(College), nrow(College)/2) #50:50 split
+train_1 <- College[trained,]
+test_1 <- College[-trained,]
+#use a help function called regsubsets to do forward stepwise selection
+fitfwd <- regsubsets(Outstate~., data = train_1, nvmax = 17, method = "forward")
+fitfwd.summary <- summary(fitfwd)
+#plotting different stats
+par(mfrow = c(1, 3))
+#cp
+plot(fitfwd.summary$cp, xlab = "# of variables", ylab = "cp", type = "b")
+min_cp <- min(fitfwd.summary$cp)
+std_cp <- sd(fitfwd.summary$cp)
+abline(h = min_cp + 0.2 * std_cp, col = "blue", lty = 1) #+0.2 sd of minimum
+abline(h = min_cp - 0.2 * std_cp, col = "blue", lty = 1) #-0.2 sd of minimum
+#bic
+plot(fitfwd.summary$bic, xlab = "# of variables", ylab = "bic", type='b')
+min_bic <- min(fitfwd.summary$bic)
+std_bic <- sd(fitfwd.summary$bic)
+abline(h = min_bic + 0.2 * std_bic, col = "yellow", lty = 1)
+abline(h = min_bic - 0.2 * std_bic, col = "yellow", lty = 1)
+#adjrsq
+plot(fitfwd.summary$adjr2, xlab = "# of variables", ylab = "adjrsq", type = "b", ylim = c(0.4, 0.84))
+max_adjr2 <- max(fitfwd.summary$adjr2)
+std_adjr2 <- sd(fitfwd.summary$adjr2)
+abline(h = max_adjr2 + 0.2 * std_adjr2, col = "green", lty = 1)
+abline(h = max_adjr2 - 0.2 * std_adjr2, col = "green", lty = 1)
+#all graphs show that the minimum size of the subset is 6 so that the scores are within 0.2 sd of optimum  
+#since the model doesn't improve a lot after 6 predictors added, we use a sebset with 6 predictors
+#select 6 features
+fitford <- regsubsets(Outstate~., data = College, method = "forward")
+coeffwd <- coef(fitford, id = 6)
+names(coeffwd)
+```
+
+#b
+```{r,warning=FALSE,message=FALSE}
+library(gam)
+fitgam <- gam(Outstate ~ Private + s(Room.Board, df = 2) + s(PhD, df = 2) + s(perc.alumni, df = 2) + s(Expend, df = 5) + s(Grad.Rate, df = 2), data = train_1)
+par(mfrow = c(2,3))
+plot(fitgam, se=T, col="red")
+summary(fitgam)
+```
+Using 6 variables gives us more sensible results. From the summary, Anova shows us there exists a strong evidence of non-linear relationship between the response and Expend. There is a fairly strong evidence of non-linear relationship between the response and Grad.Rate or PhD. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

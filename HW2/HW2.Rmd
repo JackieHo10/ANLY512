@@ -1,0 +1,274 @@
+---
+title: "HW2-Jie He"
+output: html_document
+---
+#Q4
+#a
+I would expect the training RSS for the cubic regression to be lower than the one for the linear regression since the cubic regression has more predictors. 
+
+#b
+If the extra predictors of cubic regression model cause overfitting then it will have a higher testing RSS. We train both models based on the same training data. The closer fit might cause overfitting.
+
+#c
+The training RSS of cubic regression should be lower than the linear regression. Since we know that the true relationship between X and Y is not linear, the cubic model would fit better and be easily modified for non-linearity.
+
+#d
+Just like the training RSS, the testing RSS of cubic regression should be better(lower) than the linear one.Since we know that the true relationship between X and Y is not linear, the cubic model would fit better and be easily modified for non-linearity.
+
+#Q9
+#a
+```{r}
+library(ISLR)
+summary(Auto)
+pairs(Auto)
+```
+
+#b
+```{r}
+df <- subset(Auto, select = -c(name))
+cor(df)
+```
+
+#c
+```{r}
+fit <- lm(mpg ~ ., data = df)
+summary(fit)
+```
+#i
+Yes, there is a relationship between the predictors and the response. From the above results, we can see that the F-statistic is high and the p-value associated is quite small.
+#ii
+They are displacement, weight, year, and origin. 
+#iii
+The coefficient is positive and it suggests that cars with newer model years have higher mpg.
+
+#Q12
+#a
+In order to find the answer, we need to set $$\frac{\sum_{i=1}^n x_i*y_i}{\sum_{i=1}^n x_i^2} = \frac{\sum_{i=1}^n y_i*x_i}{\sum_{i=1}^n y_i^2}$$. Then this suggests that $$\sum_{i=1}^n x_i^2 = \sum_{i=1}^n y_i^2$$, which is the general answer. 
+
+#b
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- x^2
+fitY <- lm(y ~ x)
+fitX <- lm(x ~ y)
+summary(fitY)
+summary(fitX)
+```
+From the results above, we can clearly see that 0.1532 is not equal to 0.09442.
+
+#c
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- sample(x, size = 100)
+fitY <- lm(y ~ x)
+fitX <- lm(x ~ y)
+summary(fitY)
+summary(fitX)
+```
+From the results above, we can clearly see that both estimators are equal to 0.006955.
+
+#Q13
+#a
+```{r}
+set.seed(1)
+x <- rnorm(100, mean=0, sd=1)
+```
+
+#b
+```{r}
+eps <- rnorm(100, mean=0, sd=0.25^0.5)
+```
+
+#c
+```{r}
+y <- -1 + 0.5*x + eps
+length(y)
+```
+The length of the vector y is 100. The values of $\beta_{0}$ and $\beta_{1}$ are -1 and 0.5.
+
+#d
+```{r}
+plot(x,y)
+```
+Generally, x and y are positively correlated since $\beta_{1}$ is 0.5.
+
+#e
+```{r}
+fit.lm <- lm(y ~ x)
+summary(fit.lm)
+```
+From the results above, we can see that $\hat{\beta_{0}}$ and $\hat{\beta_{1}}$ are -1.10544 and 0.55191. They are close to the values of $\beta_{0}$ and $\beta_{1}$. 
+
+#f
+```{r}
+plot(x,y)
+abline(-1, 0.5, col="green")
+abline(fit.lm, col="yellow")
+legend("bottomright", legend = c("population", "fitted"), col = c("green", "yellow"), lwd = 1.5)
+```
+
+#g
+```{r}
+fit.lm_1 <- lm(y ~ x + I(x^2))
+summary(fit.lm_1)
+anova(fit.lm, fit.lm_1)
+```
+There is no evidence that the quadratic term improves the model fit.The p-value for the coefficient of x^2 is high. The anova test also implies that the quadratic term doesn't improve the fit. 
+
+#h
+```{r}
+#set.seed(1)
+#x <- rnorm(100, mean=0, sd=1)
+eps_2 <- rnorm(100, mean=0, sd=0.15^0.5)
+y_2 <- -1 + 0.5*x + eps_2
+#length(y)
+#plot(x,y)
+fit.lm_2 <- lm(y_2 ~ x)
+summary(fit.lm_2)
+plot(x,y_2)
+abline(-1, 0.5, col="green")
+abline(fit.lm_2, col="yellow")
+legend("bottomright", legend = c("population", "fitted"), col = c("green", "yellow"), lwd = 1.5)
+```
+Variance is decreased and the coefficient estimates with decreased $\epsilon$ are almost the same as the original ones. R^2 and RSE are better than the original ones. 
+
+#i
+```{r}
+#set.seed(1)
+#x <- rnorm(100, mean=0, sd=1)
+eps_3 <- rnorm(100, mean=0, sd=0.35^0.5)
+y_3 <- -1 + 0.5*x + eps_3
+#length(y)
+#plot(x,y)
+fit.lm_3 <- lm(y_3 ~ x)
+summary(fit.lm_3)
+plot(x,y_3)
+abline(-1, 0.5, col="green")
+abline(fit.lm_3, col="yellow")
+legend("bottomright", legend = c("population", "fitted"), col = c("green", "yellow"), lwd = 1.5)
+```
+
+We can see that the coefficient estimates are getting farther from the original ones than part h (0.61328 VS 0.50820). R^2 and RSE are worse than the original ones.
+
+#j
+```{r}
+confint(fit.lm)
+confint(fit.lm_2)
+confint(fit.lm_3)
+```
+When the variance is small, the confidence interval is also small. When the variance is big, the corresponding confidence interval is also big.
+
+#Q15
+#a
+```{r}
+library(MASS)
+summary(Boston)
+fit.zn <- lm(crim ~ zn, data = Boston)
+fit.indus <- lm(crim ~ indus, data = Boston)
+fit.chas <- lm(crim ~ chas, data = Boston)
+fit.nox <- lm(crim ~ nox, data = Boston)
+fit.rm <- lm(crim ~ rm, data = Boston)
+fit.age <- lm(crim ~ age, data = Boston)
+fit.dis <- lm(crim ~ dis, data = Boston)
+fit.rad <- lm(crim ~ rad, data = Boston)
+fit.tax <- lm(crim ~ tax, data = Boston)
+fit.ptratio <- lm(crim ~ ptratio, data = Boston)
+fit.black <- lm(crim ~ black, data = Boston)
+fit.lstat <- lm(crim ~ lstat, data = Boston)
+fit.medv <- lm(crim ~ medv, data = Boston)
+
+summary(fit.zn)
+summary(fit.indus)
+summary(fit.chas)
+summary(fit.nox)
+summary(fit.rm)
+summary(fit.age)
+summary(fit.dis)
+summary(fit.rad)
+summary(fit.tax)
+summary(fit.ptratio)
+summary(fit.black)
+summary(fit.lstat)
+summary(fit.medv)
+```
+From the generated results above, we can see that only chas is not statistically significant and all the others are statistically significant.
+
+```{r}
+#supporting plots below
+plot(crim~zn, data = Boston)
+abline(fit.zn, col="red",lwd=2)
+
+plot(crim~indus, data = Boston)
+abline(fit.indus, col="red",lwd=2)
+
+plot(crim~nox, data = Boston)
+abline(fit.nox, col="red",lwd=2)
+
+plot(crim~rm, data = Boston)
+abline(fit.rm, col="red",lwd=2)
+
+plot(crim~age, data = Boston)
+abline(fit.age, col="red",lwd=2)
+
+plot(crim~dis, data = Boston)
+abline(fit.dis, col="red",lwd=2)
+
+plot(crim~rad, data = Boston)
+abline(fit.rad, col="red",lwd=2)
+
+plot(crim~tax, data = Boston)
+abline(fit.tax, col="red",lwd=2)
+
+plot(crim~ptratio, data = Boston)
+abline(fit.ptratio, col="red",lwd=2)
+
+plot(crim~black, data = Boston)
+abline(fit.black, col="red",lwd=2)
+
+plot(crim~lstat, data = Boston)
+abline(fit.lstat, col="red",lwd=2)
+
+plot(crim~medv, data = Boston)
+abline(fit.medv, col="red",lwd=2)
+
+plot(crim~chas, data = Boston)
+abline(fit.chas, col="blue",lwd=2)
+```
+
+#b
+```{r}
+fit.all <- lm(crim~., data = Boston)
+summary(fit.all)
+```
+For the following predictors, we can reject the null hypothesis indicated in the problem.
+zn,nox,dis,rad,black,lstat,and medv.
+
+#c
+```{r warning=FALSE, message=FALSE}
+lists <- combn(names(Boston), 2, function(x) {coefficients(lm(Boston[, x]))})
+coef_uni <- unlist(lists)[seq(2,26,2)]
+coef_multi <- coefficients(fit.all)[-1]
+plot(coef_uni, coef_multi)
+```
+In part b, fewer predictors are statistically significant than in part a. From the graph, we can see that the point for nox is far away from the others since its coefficient estimates are big.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

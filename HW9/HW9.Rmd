@@ -1,0 +1,121 @@
+---
+title: "HW9_Jie He"
+output: html_document
+---
+
+#In-class Project
+#1. Familiarize yourself with the dataset descriptions. What are the features of the dataset and what are you trying to predict? 
+Our group was doing airfoils data set. According to the dataset descriptions on UCI's website, the data set is originally from NASA and it "comprises different size NACA 0012 airfoils at various wind tunnel speeds and angles of attack. The span of the airfoil and the observer position were the same in all of the experiments." We have five inputs in the data set which are listed below:
+(1) Frequency, in Hertzs. 
+(2) Angle of attack, in degrees. It's the angle between the chord of an airfoil and the direction of the surrounding undisturbed flow of gas or liquid. 
+(3) Chord length, in meters. 
+(4) Free-stream velocity, in meters per second. It's the velocity in which the aircraft is moving through the air.
+(5) Suction side displacement thickness, in meters. 
+The only output which we are trying to predict is listed below:
+(1) Scaled sound pressure level, in decibels. 
+From the original NASA paper, we know that the importance of this problem to broadband helicopter rotor, wind turbine, and airframe noises was the motivation for conducting the research. It helped people develop fundamental understanding and prediction capability of the various self-noise mechanisms. The data set was generated from the research and thus it's important as well.
+
+#2. Pull down the data from the UCI site and load into an R dataframe in whatver way your team sees as best. This step is entirely one of "data wrangling and cleaning" - a topic that we've avoided so far in class, but is an inevitable part of data science. This step probably won't require web-scraping, but it will take a little effort. 
+```{r}
+airfoils <- read.table("https://archive.ics.uci.edu/ml/machine-learning-databases/00291/airfoil_self_noise.dat", header = FALSE)
+colnames(airfoils) <- c("Frequency", "Angle", "Length", "Velocity", "Thickness", "Pressure")
+airfoil <- data.frame(airfoils)
+```
+
+#3. Now that you have a dataframe, do some Exploratory Data Analysis. Come up with some  visualizations that help you understand the features and their relationship to the target variable. 
+```{r}
+set.seed(1)
+pairs(airfoil)
+hist(airfoil$Pressure)
+boxplot(airfoil$Pressure)
+boxplot(airfoil$Length)
+summary(airfoil)
+```
+From the scatterplot matrix above, we can see that there doesn't exist a strong relationship between a pair of variables. There might be some relationships among a group of three variables such as Angle, Frequency and Pressure. However, Prof. Hines said it is not necessary to explore that far. From both the histogram and the boxplot, we can see that the most frequent values of pressure are located in the interval from 120 to 130. The min of pressure is slightly above 100 and the max of pressure is around 140. The median of pressure is about 125. All of them can be observed from both graphs. The last boxplot is for the feature, Length. From the graph, we can see that the most frequent values of length are located in the interval from 0.05 to 0.22. The min is about 0.025 and the max is around 0.30. The median is about 0.10. Other stats about features can be found in the summary.   
+
+#4. Split your data into a training set and a test set.
+```{r}
+set.seed(1)
+
+training = sample(1:nrow(airfoil), nrow(airfoil)*0.8) #80:20
+airfoil.train <- airfoil[training, ]
+airfoil.test <- airfoil[-training, ]
+```
+
+#5. Fit your data with a "baseline" model (either linear regression or logistic regression). Which variables seem to be important? 
+```{r}
+lm.fit  = lm(Pressure ~ ., data = airfoil.train)
+summary(lm.fit)
+
+y.pred0 = predict(lm.fit, airfoil.test)
+mean((y.pred0 - airfoil.test$Pressure)^2) #Test MSE
+```
+We ran linear regression on the training data and evaluated the model performance on the test data. From the model summary, we can see that all predictors seem to be important because they are statistically significant with p-values less than 0.05. The Test MSE is 22.46485 in this case. The relationship is not quite linear. 
+
+#6. Fit your data with a decision tree. Visualize the tree and comment on the results when the model is applied to the test set.
+```{r}
+library(tree)
+mytree <- tree(Pressure ~ ., data = airfoil.train)
+summary(mytree)
+
+plot(mytree)
+text(mytree, pretty = 2, cex = 1)
+
+y.pred = predict(mytree, airfoil.test)
+mean((y.pred - airfoil.test$Pressure)^2) #Test MSE
+```
+The second method which we used is decision tree. It is a regression tree since we are dealing with a regression problem. The number of terminal nodes is 13 and only four variables are used in tree splitting. Angle is not included. The Test MSE is 22.34539 in this case. A single decision tree is not quite fit to this problem.
+
+
+#7. Fit your data with bagging (with decision trees). Compare with results from part 5.
+```{r,warning=FALSE,message=FALSE}
+library(randomForest)
+set.seed(1)
+bag.airfoil <- randomForest(Pressure ~ ., data = airfoil.train, mtry = 5, importance = TRUE)
+bag.airfoil
+
+y.pred2 = predict(bag.airfoil, airfoil.test)
+mean((y.pred2 - airfoil.test$Pressure)^2) #Test MSE
+```
+The third method which we used is bagging. We set the number of predictors sampled for spliting at each node equal to all predictors (5). It is a regression random forest with 500 decision trees. 92.22% variance of the training set can be explained. The Test MSE is 4.127735 in this case which is much smaller than the one from part 5. It means that this current thing is an improved model. 
+
+#8. If your dataset has many features, fit your data with a random forest model. Comment on the results when the model is applied to the test set.
+```{r,warning=FALSE,message=FALSE}
+library(randomForest)
+set.seed(1)
+rf.airfoil <- randomForest(Pressure ~ ., data = airfoil.train, mtry = 3, importance = TRUE)
+rf.airfoil
+rf.airfoil$rsq[500]
+
+y.pred3 = predict(rf.airfoil, airfoil.test)
+mean((y.pred3 - airfoil.test$Pressure)^2) #Test MSE
+```
+The forth method which we tried is random forest even though we don't have many features. This time, We set the number of predictors sampled for spliting at each node equal to 3. Again, It is a regression random forest with 500 decision trees. 91.34% variance of the training set can be explained. The Test MSE is 4.585477 in this case which is slightly higher than the one for bagging but still much lower than the first two models.
+
+#9. Fit your data with a boosted tree model. Comment on the results when the model is applied to the test set.
+```{r,warning=FALSE,message=FALSE}
+library(gbm)
+set.seed(1)
+boost.airfoil <- gbm(Pressure ~ ., data = airfoil.train, distribution = "gaussian", n.trees = 5000, interaction.depth = 10)
+summary(boost.airfoil)
+
+y.pred4 = predict(boost.airfoil, airfoil.test, n.trees = 5000)
+mean((y.pred4 - airfoil.test$Pressure)^2) #Test MSE
+```
+The last one we tried is boosting. We used gaussian to deal with the regression problem and set the depth equal to 10. We can see that Thickness and Frequency are by far the most important variables from both the table and the graph. The Test MSE is 6.248005 in this case which is higher than bagging and random forest but lower than the first two models. 
+
+#Summary
+Based on the Test MSE values generated by all these models, we can conclude that bagging has the best performance on the test data and random forest is pretty close to bagging. Boosting is worse than the previous two but looks better than decision tree and linear regression. The last two are very close and not that bad but simply worse than the others. From boosting and decision tree, we notice that Thickness and Frequency seem important. It seems like, with appropriate model applied, those features can produce a good prediction on Pressure. The way NASA chose features might be interesting.
+
+
+
+
+
+
+
+
+
+
+
+
+

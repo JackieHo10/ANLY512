@@ -1,0 +1,205 @@
+---
+title: "HW10_Jie He"
+output: html_document
+---
+#Section 9.7
+#Q3
+#a
+```{r}
+X1 = c(3, 2, 4, 1, 2, 4, 4)
+X2 = c(4, 2, 4, 4, 1, 3, 1)
+color = c("red", "red", "red", "red", "blue", "blue", "blue")
+plot(X1, X2, col = color, xlim = c(0, 5), ylim = c(0, 5))
+```
+
+#b
+```{r}
+plot(X1, X2, col = color, xlim = c(0, 5), ylim = c(0, 5))
+abline(-0.5, 1)
+```
+From the graph, we can see that the optimal separating hyperplane should be between the points (4,3) & (4,4) and also between the points (2,1) & (2,2). Then it's a line with (4,3.5) & (2,1.5) on it. Its equation can be expressed as $$X1-X2-0.5=0$$ 
+
+#c
+The rule is: Classify to Red if $$X1-X2-0.5<0$$, and classify to Blue otherwise.
+
+#d
+```{r}
+plot(X1, X2, col = color, xlim = c(0, 5), ylim = c(0, 5))
+abline(-0.5, 1)
+abline(-1, 1, lty = 3)
+abline(0, 1, lty = 3)
+```
+Now we can see that the margin is 1/4.
+
+#e
+The support vectors are (2,1), (2,2), (4,3), (4,4).
+
+#f
+From the graph, we can see that the maximal margin hyperplane would not be changed even if we moved the seventh observation because it is not a support vector.
+
+#g
+```{r}
+plot(X1, X2, col = color, main = "a hyperplane that is not the optimal separating hyperplane", xlim = c(0, 5), ylim = c(0, 5))
+abline(-0.3, 1)
+```
+The equation for this hyperplane is: $$X1-X2-0.3=0$$ 
+
+#h
+```{r}
+plot(X1, X2, col = color, xlim = c(0, 5), ylim = c(0, 5))
+points(c(3), c(1), col = c("red"))
+```
+The addition of the red one (3,1) makes that the two classes are no longer separable by a hyperplane. 
+
+#Q4
+Generate the data according to the requirements first.
+```{r, warning=FALSE, message=FALSE}
+require(e1071)
+set.seed(1)
+x <- rnorm(100)
+y <- 4 * x^2 + 1 + rnorm(100)
+class <- sample(100, 50)
+y[class] <- y[class] + 3
+y[-class] <- y[-class] - 3
+plot(x[class], y[class], col = "green", main = "two classes of data", xlab = "x", ylab = "y", ylim = c(-6, 30))
+points(x[-class], y[-class], col = "yellow")
+```
+
+support vector classifier
+```{r}
+z <- rep(-1, 100)
+z[class] <- 1
+mydata <- data.frame(x = x, y = y, z = as.factor(z))
+training <- sample(100, 50)
+train <- mydata[training, ]
+test <- mydata[-training, ]
+linear <- svm(z ~ ., data = train, kernel = "linear", cost = 10)
+plot(linear, train)
+table(predict(linear, train), train$z)
+```
+We can see from the table above, this method has 6 errors.
+
+SVM (polynomial kernel of degree 3)
+```{r}
+poly <- svm(z ~ ., data = train, kernel = "polynomial", cost = 10)
+plot(poly, train)
+table(predict(poly, train), train$z)
+```
+We can see from the table above, this method with a polynomial kernel of degree 3 has 9 errors.
+
+SVM (radial kernel with gamma 1)
+```{r}
+radial <- svm(z ~ ., data = train, kernel = "radial", gamma = 1, cost = 10)
+plot(radial, train)
+table(predict(radial, train), train$z)
+```
+We can see from the table above, this current method has 0 error.
+
+Test model performance on the test data below.
+```{r}
+plot(linear, test)
+```
+```{r}
+table(predict(linear, test), test$z)
+```
+```{r}
+plot(poly, test)
+```
+```{r}
+table(predict(poly, test), test$z)
+```
+```{r}
+plot(radial, test)
+```
+```{r}
+table(predict(radial, test), test$z)
+```
+After applying models to the test data, we can see from the results above that the linear svm model has 6 errors; the polynomial svm model has 9 errors; the radial svm model has 1 error. Obviously, the svm model with a radial kernel is the best performer in our case. 
+
+#Section 10.7
+#Q2
+#a
+Based on Algorithm 10.2, we have the following:
+I. We have the dissimilarity matrix provided in the problem. $$\pmatrix{ &0.3 &0.4 &0.7 \cr 0.3 & &0.5 &0.8 \cr 0.4 &0.5 & & 0.45 \cr 0.7 &0.8 &0.45 & }$$
+II. i = 4, let's fuse obs 1 and 2 to generate a cluster (1,2) at height 0.3 because 0.3 is the minimum dissimilarity in the previous matrix. $$\pmatrix{ &0.5 &0.8 \cr 0.5 & &0.45 \cr 0.8 &0.45 & }$$
+III. i = 3, let's fuse obs 3 and 4 to generate a cluster (3,4) at height 0.45 because 0.45 is the minimum dissimilarity in the previous matrix. $$\pmatrix{ &0.8 \cr 0.8 & }$$
+IV. i = 4, let's fuse both clusters (1,2) and (3,4) to generate a cluster ((1,2),(3,4)) at height 0.8.
+```{r}
+dist <- as.dist(matrix(c(0, 0.3, 0.4, 0.7, 0.3, 0, 0.5, 0.8, 0.4, 0.5, 0.0, 0.45, 0.7, 0.8, 0.45, 0.0), nrow = 4))
+plot(hclust(dist, method = "complete"))
+```
+
+#b
+Based on Algorithm 10.2, we have the following:
+I. We have the dissimilarity matrix provided in the problem. $$\pmatrix{ &0.3 &0.4 &0.7 \cr 0.3 & &0.5 &0.8 \cr 0.4 &0.5 & & 0.45 \cr 0.7 &0.8 &0.45 & }$$
+II. i = 4, let's fuse obs 1 and 2 to generate a cluster (1,2) at height 0.3 because 0.3 is the minimum dissimilarity in the previous matrix. $$\pmatrix{ &0.4 &0.7 \cr 0.4 & &0.45 \cr 0.7 &0.45 & }$$
+III. i = 3, let's fuse obs 3 and (1,2) to generate a cluster (3,(1,2)) at height 0.4 because 0.4 is the minimum dissimilarity in the previous matrix. $$\pmatrix{ &0.45 \cr 0.45 & }$$
+IV. i = 4, let's fuse clusters ((1,2),3) and obs 4 to generate a cluster (((1,2),3),4) at height 0.45.
+```{r}
+plot(hclust(dist, method = "single"))
+```
+
+#c
+For part(a), (1,2) and (3,4).
+
+#d
+For part(b), ((1,2),3) and (4).
+
+#Q11
+#a
+```{r}
+genedata <- read.csv("Ch10Ex11.csv", header = F)
+```
+
+#b
+I will try three different types of linkage below.
+```{r}
+complete <- hclust(as.dist(1-cor(genedata)), method = "complete")
+plot(complete)
+```
+```{r}
+single <- hclust(as.dist(1-cor(genedata)), method = "single")
+plot(single)
+```
+```{r}
+average <- hclust(as.dist(1-cor(genedata)), method = "average")
+plot(average)
+```
+We can see from the graphs, different linkage methods yield very different results. We have two clusters for the first two methods and three clusters for the last one. 
+
+#c
+We can use PCA method to answer this question. Check the absolute values of the total loadings for every single gene because they represent the weight of every single gene.
+```{r}
+output <- prcomp(t(genedata))
+head(output$rotation)
+```
+```{r}
+loadings <- apply(output$rotation, 1, sum)
+i <- order(abs(loadings), decreasing = TRUE)
+i[1:15] #output the top 10 results
+```
+The above are the 15 most different genes across the two groups. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
